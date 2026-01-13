@@ -43,20 +43,18 @@ This step maps trimmed reads to a reference genome to determine the origin of ea
 
 Required software：bowtie2 and samtools.
 ```bash
-bowtie2 \
-    --local --very-sensitive \
-    -p 4 \
+bowtie2 --local --very-sensitive -p 4 \
     -x reference_index_dir/GRCm39.genome.mm \
     -1 data/trimmed_fastq/sample1_R1.fastq.gz \
     -2 data/trimmed_fastq/sample1_R2.fastq.gz \
     -S data/alignment/sam/sample1.sam &> data/alignment/sam/bowtie2_summary/sample1.txt
-#Convert SAM files to BAM files and sort.
 
-    samtools view -bS -F 0x04 data/alignment/sam/sample1.sam -o data/alignment/bam/sample1.bam  
-    # Sort BAM file
-    samtools sort data/alignment/bam/sample1.bam -o data/alignment/bam/sample1.sort.bam
-    # build index
-    samtools index data/alignment/bam/sample1.sort.bam
+#Convert SAM files to BAM files.
+samtools view -bS -F 0x04 data/alignment/sam/sample1.sam -o data/alignment/bam/sample1.bam  
+# Sort BAM file
+samtools sort data/alignment/bam/sample1.bam -o data/alignment/bam/sample1.sort.bam
+# build index
+samtools index data/alignment/bam/sample1.sort.bam
 ```
 
 ### 4. Gene quantification
