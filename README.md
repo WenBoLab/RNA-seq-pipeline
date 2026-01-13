@@ -59,6 +59,7 @@ samtools index data/alignment/bam/sample1.sort.bam
 
 ### 4. Gene quantification
 This step counts how many reads map to each gene.
+
 Required software：subread.
 ```bash
 featureCounts -T 4 -p -a reference_dir/Mus_musculus.GRCm39.114.chr.gtf -g exon_id -f \
