@@ -90,7 +90,7 @@ save(dds, file = '2.diff_RNA_dds.RData')
 diff_data <- results(dds)
 head(results(dds, tidy=TRUE)) #let's look at the results table
 # sort with adjust pvalue
-diff_data <- diff_mus_liver[order(diff_data$padj),]
+diff_data <- diff_data[order(diff_data$padj),]
 head(diff_data)
 diff_data <- as.data.frame(diff_data)
 diff_data$gene <- rownames(diff_data)
@@ -507,3 +507,4 @@ for (j in 1:length(module_eigengenes)){
 }
 
 dev.off()
+
