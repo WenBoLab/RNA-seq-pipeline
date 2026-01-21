@@ -157,7 +157,7 @@ p <- ggplot(
   diff_data, aes(x = log2FoldChange, y = -log10(pvalue), colour=change)) +
   geom_point(alpha=0.8, size=1) +
   scale_color_manual(values=c("#104F8D", "#d2dae2","#BD4F48"))+
-  geom_vline(xintercept=c(-log2FoldChange,log2FoldChange),lty=4,col="black",lwd=0.8) +
+  geom_vline(xintercept=c(-cut_off_logFC,cut_off_logFC),lty=4,col="black",lwd=0.8) +
   geom_hline(yintercept = -log10(cut_off_pvalue),lty=4,col="black",lwd=0.8) +
   labs(x="log2(Fold Change)",
        y="-log10 (pvalue)")+
@@ -507,4 +507,5 @@ for (j in 1:length(module_eigengenes)){
 }
 
 dev.off()
+
 
