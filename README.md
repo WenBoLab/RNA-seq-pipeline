@@ -29,7 +29,7 @@ fastqc -t 4 -o data/raw_fastqc/ -f fastq data/raw_data/*.fastq.gz
 multiqc data/raw_fastqc/ -o data/raw_multiqc/
 ```
 This will generate an HTML report to quickly assess data
-<img width="1266" height="519" alt="image" src="https://github.com/user-attachments/assets/5d3786fa-c349-4638-85e8-832d49be39cd" />
+<img width="800" height="600" alt="image" src="https://github.com/user-attachments/assets/5d3786fa-c349-4638-85e8-832d49be39cd" />
 
 ### 2. Read trimming and filtering
 This step removes adapter sequences and low-quality bases from raw RNA-seq reads.
@@ -129,8 +129,10 @@ res <- results(dds, contrast=c("condition","Treatment","Control"))
 res.sig <- res[res$padj < 0.05 & abs(res$log2FoldChange) > 1, ] # apply significance threshold
 ```
 <img width="400" height="200" alt="image" src="https://github.com/user-attachments/assets/20451504-2091-4f63-96c3-4d3b23788731" />
-The PCA plot of all samples
-<img width="513" height="514" alt="image" src="https://github.com/user-attachments/assets/a4fb3b0f-55f2-4230-af2f-1069c25fbabd" />
+PCA plot of all samples based on normalized gene expression.
+
+<img width="600" height="400" alt="image" src="https://github.com/user-attachments/assets/a4fb3b0f-55f2-4230-af2f-1069c25fbabd" />
+Volcano plot showing differentially expressed genes.
 
 ###### (2) Functional Enrichment Analysis
 This step aims to interpret differentially expressed genes through functional enrichment analysis.
@@ -157,6 +159,9 @@ ekegg <- enrichKEGG(
 )
 
 ```
-<img width="758" height="759" alt="image" src="https://github.com/user-attachments/assets/516407b0-2756-41e3-81fe-d5ede3685e7f" />
-<img width="547" height="457" alt="image" src="https://github.com/user-attachments/assets/6b2a7a8a-fcf9-4107-8baf-cd8d9acb2d4e" />
+<img width="600" height="400" alt="image" src="https://github.com/user-attachments/assets/516407b0-2756-41e3-81fe-d5ede3685e7f" />
+GO analysis of differentially expressed genes revealed significant enrichment in various biological processes.
+
+<img width="400" height="300" alt="image" src="https://github.com/user-attachments/assets/6b2a7a8a-fcf9-4107-8baf-cd8d9acb2d4e" />
+KEGG pathway analysis indicated significant enrichment in multiple signaling pathways.
 
