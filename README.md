@@ -114,3 +114,49 @@ This step interprets differential expression results and visualizes patterns in 
 
 > **Note:** This step requires R and the necessary Bioconductor/R packages installed before running.
 
+###### (1) Differentially expressed genes (DEGs)
+This step aims to identify differentially expressed genes between conditions and visualize the results.
+```R
+counts <- read.table("data/counts_matrix.tsv", header=TRUE, row.names=1) # load expression data
+meta   <- read.table("data/metadata.tsv", header=TRUE, row.names=1) # sample information
+library(DESeq2)
+dds <- DESeqDataSetFromMatrix(counts, meta, design=~condition)
+vsd <- vst(dds)
+plotPCA(vsd, intgroup="condition")
+
+<img width="570" height="263" alt="image" src="https://github.com/user-attachments/assets/20451504-2091-4f63-96c3-4d3b23788731" />
+
+dds <- DESeq(dds)
+res <- results(dds, contrast=c("condition","Treatment","Control"))
+res.sig <- res[res$padj < 0.05 & abs(res$log2FoldChange) > 1, ] # apply significance threshold
+```
+<img width="513" height="514" alt="image" src="https://github.com/user-attachments/assets/a4fb3b0f-55f2-4230-af2f-1069c25fbabd" />
+
+###### (2) Functional Enrichment Analysis
+This step aims to interpret differentially expressed genes through functional enrichment analysis.
+```R
+# GO analysis
+library(clusterProfiler)
+library(org.Mm.eg.db)
+genes <- rownames(res.sig)
+ego <- enrichGO(gene=genes,
+                OrgDb=org.Mm.eg.db,
+                keyType="SYMBOL",
+                ont="ALL")
+
+<img width="758" height="759" alt="image" src="https://github.com/user-attachments/assets/516407b0-2756-41e3-81fe-d5ede3685e7f" />
+
+# KEGG analysis
+library(biomaRt)
+gene2symbols <- getBM(attributes = c('external_gene_name','entrezgene_id'),
+                      filters = "external_gene_name", values = genes, mart = gene_info)
+
+ekegg <- enrichKEGG(
+  gene = gene2symbols$entrezgene_id,
+  keyType = 'kegg',
+  organism = 'mmu'
+)
+
+<img width="547" height="457" alt="image" src="https://github.com/user-attachments/assets/6b2a7a8a-fcf9-4107-8baf-cd8d9acb2d4e" />
+
+```
