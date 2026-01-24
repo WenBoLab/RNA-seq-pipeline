@@ -28,6 +28,9 @@ Required software：fastqc and multiqc. you can install them using Conda.
 fastqc -t 4 -o data/raw_fastqc/ -f fastq data/raw_data/*.fastq.gz
 multiqc data/raw_fastqc/ -o data/raw_multiqc/
 ```
+Export of results to an HTML to quickly assess data
+<img width="1266" height="519" alt="image" src="https://github.com/user-attachments/assets/5d3786fa-c349-4638-85e8-832d49be39cd" />
+
 ### 2. Read trimming and filtering
 This step removes adapter sequences and low-quality bases from raw RNA-seq reads.
 
