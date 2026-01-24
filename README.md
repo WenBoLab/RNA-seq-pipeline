@@ -35,12 +35,16 @@ This will generate an HTML report to quickly assess data
 This step removes adapter sequences and low-quality bases from raw RNA-seq reads.
 
 Required software：trim-galore or fastp.
+
+the example of trim-galore
 ```bash
 trim_galore --paired --cores 4 \
   data/raw_data/sample1_R1.fastq.gz \
   data/raw_data/sample1_R2.fastq.gz \
   -o data/trimmed_fastq/
 ```
+
+the example of fastp
 ```bash
 fastp -i data/raw_data/sample1_R1.fastq.gz -o data/clean_data/sample1_R1_clean.fq.gz \
     -I data/raw_data/sample1_R2.fastq.gz -O data/clean_data/sample1_R2_clean.fq.gz \
@@ -51,6 +55,7 @@ fastp -i data/raw_data/sample1_R1.fastq.gz -o data/clean_data/sample1_R1_clean.f
 This step maps trimmed reads to a reference genome to determine the origin of each read.
 
 Required software：bowtie2 or STAR and samtools.
+
 the example of bowtie2
 ```bash
 bowtie2 --local --very-sensitive -p 4 \
