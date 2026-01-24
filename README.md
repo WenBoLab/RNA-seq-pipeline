@@ -28,23 +28,30 @@ Required software：fastqc and multiqc. you can install them using Conda.
 fastqc -t 4 -o data/raw_fastqc/ -f fastq data/raw_data/*.fastq.gz
 multiqc data/raw_fastqc/ -o data/raw_multiqc/
 ```
-Export of results to an HTML to quickly assess data
+This will generate an HTML report to quickly assess data
 <img width="1266" height="519" alt="image" src="https://github.com/user-attachments/assets/5d3786fa-c349-4638-85e8-832d49be39cd" />
 
 ### 2. Read trimming and filtering
 This step removes adapter sequences and low-quality bases from raw RNA-seq reads.
 
-Required software：trim-galore.
+Required software：trim-galore or fastp.
 ```bash
 trim_galore --paired --cores 4 \
   data/raw_data/sample1_R1.fastq.gz \
   data/raw_data/sample1_R2.fastq.gz \
   -o data/trimmed_fastq/
 ```
+```bash
+fastp -i data/raw_data/sample1_R1.fastq.gz -o data/clean_data/sample1_R1_clean.fq.gz \
+    -I data/raw_data/sample1_R2.fastq.gz -O data/clean_data/sample1_R2_clean.fq.gz \
+    -q 20 -u 30 -n 5 -l 30
+```	
+
 ### 3. Read alignment
 This step maps trimmed reads to a reference genome to determine the origin of each read.
 
-Required software：bowtie2 and samtools.
+Required software：bowtie2 or STAR and samtools.
+the example of bowtie2
 ```bash
 bowtie2 --local --very-sensitive -p 4 \
     -x reference_index_dir/GRCm39.genome.mm \
@@ -58,6 +65,21 @@ samtools view -bS -F 0x04 data/alignment/sam/sample1.sam -o data/alignment/bam/s
 samtools sort data/alignment/bam/sample1.bam -o data/alignment/bam/sample1.sort.bam
 # build index
 samtools index data/alignment/bam/sample1.sort.bam
+```
+the example of STAR
+```bash
+STAR --runThreadN 4 \
+       --genomeDir index_dir \
+       --readFilesIn sample1_R1.fastq.gz sample1_R2.fastq.gz \
+       --readFilesCommand zcat \
+       --outFileNamePrefix alignment_dir \
+       --twopassMode Basic \
+       --sjdbGTFfile GTF_dir \
+       --quantMode  GeneCounts \
+       --outSAMtype BAM SortedByCoordinate \
+       --outSAMattributes NH HI AS nM XS \
+       --outFilterMatchNminOverLread 0.3 \
+       --outFilterScoreMinOverLread 0.3
 ```
 
 ### 4. Gene quantification
