@@ -90,12 +90,24 @@ STAR --runThreadN 4 \
 ### 4. Gene quantification
 This step counts how many reads map to each gene.
 
-Required software：subread.
+Required software：subread or HTSeq.
+
+the example of subread
 ```bash
 featureCounts -T 4 -p -a reference_dir/Mus_musculus.GRCm39.114.chr.gtf -g exon_id -f \
 	-o data/counts/read_counts.txt \
 	data/alignment/bam/sample1.sort.bam
 ```
+
+the example of HTSeq
+```bash
+htseq-count \
+  -f bam -r name -s yes -t exon -i gene_id -m union -n 4 \
+  --with-header \
+  data/alignment/bam/sample1.sort.bam \
+  GTF_dir > data/counts/read_counts.txt
+```
+
 ### 5. Downstream functional analysis and visualization
 This step interprets differential expression results and visualizes patterns in the data, including pathway enrichment, clustering, and principal component analysis.
 ## ⚠️ Reminders
