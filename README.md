@@ -129,9 +129,12 @@ res <- results(dds, contrast=c("condition","Treatment","Control"))
 res.sig <- res[res$padj < 0.05 & abs(res$log2FoldChange) > 1, ] # apply significance threshold
 ```
 <img width="400" height="200" alt="image" src="https://github.com/user-attachments/assets/20451504-2091-4f63-96c3-4d3b23788731" />
+
 PCA plot of all samples based on normalized gene expression.
 
-<img width="600" height="400" alt="image" src="https://github.com/user-attachments/assets/a4fb3b0f-55f2-4230-af2f-1069c25fbabd" />
+
+<img width="400" height="200" alt="image" src="https://github.com/user-attachments/assets/a4fb3b0f-55f2-4230-af2f-1069c25fbabd" />
+
 Volcano plot showing differentially expressed genes.
 
 ###### (2) Functional Enrichment Analysis
@@ -159,9 +162,11 @@ ekegg <- enrichKEGG(
 )
 
 ```
-<img width="600" height="400" alt="image" src="https://github.com/user-attachments/assets/516407b0-2756-41e3-81fe-d5ede3685e7f" />
+<img width="400" height="300" alt="image" src="https://github.com/user-attachments/assets/516407b0-2756-41e3-81fe-d5ede3685e7f" />
+
 GO analysis of differentially expressed genes revealed significant enrichment in various biological processes.
 
 <img width="400" height="300" alt="image" src="https://github.com/user-attachments/assets/6b2a7a8a-fcf9-4107-8baf-cd8d9acb2d4e" />
+
 KEGG pathway analysis indicated significant enrichment in multiple signaling pathways.
 
