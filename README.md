@@ -124,12 +124,11 @@ dds <- DESeqDataSetFromMatrix(counts, meta, design=~condition)
 vsd <- vst(dds)
 plotPCA(vsd, intgroup="condition")
 
-<img width="570" height="263" alt="image" src="https://github.com/user-attachments/assets/20451504-2091-4f63-96c3-4d3b23788731" />
-
 dds <- DESeq(dds)
 res <- results(dds, contrast=c("condition","Treatment","Control"))
 res.sig <- res[res$padj < 0.05 & abs(res$log2FoldChange) > 1, ] # apply significance threshold
 ```
+<img width="570" height="263" alt="image" src="https://github.com/user-attachments/assets/20451504-2091-4f63-96c3-4d3b23788731" />
 <img width="513" height="514" alt="image" src="https://github.com/user-attachments/assets/a4fb3b0f-55f2-4230-af2f-1069c25fbabd" />
 
 ###### (2) Functional Enrichment Analysis
@@ -144,7 +143,6 @@ ego <- enrichGO(gene=genes,
                 keyType="SYMBOL",
                 ont="ALL")
 
-<img width="758" height="759" alt="image" src="https://github.com/user-attachments/assets/516407b0-2756-41e3-81fe-d5ede3685e7f" />
 
 # KEGG analysis
 library(biomaRt)
@@ -157,6 +155,7 @@ ekegg <- enrichKEGG(
   organism = 'mmu'
 )
 
+```
+<img width="758" height="759" alt="image" src="https://github.com/user-attachments/assets/516407b0-2756-41e3-81fe-d5ede3685e7f" />
 <img width="547" height="457" alt="image" src="https://github.com/user-attachments/assets/6b2a7a8a-fcf9-4107-8baf-cd8d9acb2d4e" />
 
-```
