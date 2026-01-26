@@ -1,16 +1,11 @@
 #!/bin/bash
 set -euo pipefail
 
-# set the path
-data_dir="/data/RNA-seq/01/data/01.RawData"
-fastqc_dir="/data/RNA-seq/01/results/fastqc"
-multiqc_dir="/data/RNA-seq/01/results/multiqc"
-
-# ========= 参数 =========
-SAMPLES=$1          # 例如：14,18,IgG
+# ========= global parameters =========
+SAMPLES=$1          # eg.：SRR12043508,SRR12043509,SRR18909870,SRR18909871
 CONFIG=$2           # RNA-seq_config.sh
 
-# ========= 读取配置 =========
+# ========= config =========
 source ${CONFIG}
 
 # ========= conda =========
@@ -30,7 +25,6 @@ for i in "${SAMPLE_ARRAY[@]}";do
 done
 
 # parameters
-# {12..19}: the sample name, this can change with different
 # -t number of threads to use for parallel processing
 # -o directory where FastQC output files will be saved
 # -f input file format
@@ -40,4 +34,3 @@ echo "start running MultiQC..."
 
 # step2. use multiqc to merge fastqc results
 multiqc ${fastqc_dir}/ -o ${multiqc_dir}/
-
