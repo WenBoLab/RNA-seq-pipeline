@@ -59,5 +59,5 @@ kegg.data <- KEGG_results$data
 kegg.data.plot <- KEGG_results$plot
 write.table(kegg.data,file=file.path(result.dir,  "KEGG results.txt"),sep="\t",quote=F,row.names = TRUE)
 ggsave(file=file.path(result.dir,"KEGG_dotplot.pdf"), plot = kegg.data.plot,
-
        width = 8, height = 6, units = "in")
+
