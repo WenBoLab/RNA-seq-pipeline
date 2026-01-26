@@ -19,6 +19,7 @@ mkdir -p "${fastqc_dir}" "${multiqc_dir}"
 
 echo "start running FastQC..."
 # step1. fastqc for raw quality control
+IFS=',' read -ra SAMPLE_ARRAY <<< "${SAMPLES}"
 
 for i in "${SAMPLE_ARRAY[@]}";do
     fastqc -t ${THREADS} -o ${fastqc_dir}/ -f fastq ${data_dir}/${i}/*.fq.gz
