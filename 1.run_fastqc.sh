@@ -1,0 +1,1 @@
+bash 1.data_quality_control.sh "SRR12043508,SRR12043509,SRR18909870,SRR18909871" RNA-seq_config.sh
