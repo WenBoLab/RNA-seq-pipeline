@@ -17,8 +17,7 @@ set -u
 # create folders
 mkdir -p "${clean_dir}"
 
-echo "start running trim_galore..."
-# step1. fastqc for raw quality control
+echo "start running Fastp..."
 IFS=',' read -ra SAMPLE_ARRAY <<< "${SAMPLES}"
 
 for i in "${SAMPLE_ARRAY[@]}"; do
@@ -27,7 +26,6 @@ for i in "${SAMPLE_ARRAY[@]}"; do
     -q 20 -u 30 -n 5 -l 30 --thread ${THREADS} --html ${clean_dir}/${i}.fastp.html
 done
 
-# step2. fastqc after filtering
 echo "start running FastQC after clean..."
 mkdir -p "${clean_fastqc_dir}" "${clean_multiqc_dir}"
 fastqc -t ${THREADS} -o ${clean_fastqc_dir}/ -f fastq ${clean_dir}/*.fq.gz
