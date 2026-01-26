@@ -18,7 +18,7 @@ set -u
 mkdir -p "${fastqc_dir}" "${multiqc_dir}"
 
 echo "start running FastQC..."
-# step1. fastqc for raw quality control
+
 IFS=',' read -ra SAMPLE_ARRAY <<< "${SAMPLES}"
 
 for i in "${SAMPLE_ARRAY[@]}";do
@@ -32,6 +32,4 @@ done
 # path to the input compressed FASTQ files for each sample
 
 echo "start running MultiQC..."
-
-# step2. use multiqc to merge fastqc results
 multiqc ${fastqc_dir}/ -o ${multiqc_dir}/
