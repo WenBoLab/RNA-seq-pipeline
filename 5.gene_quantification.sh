@@ -1,20 +1,26 @@
 #!/bin/bash
 set -euo pipefail
 
-# set the path
-alignment_dir="/data/RNA-seq/01/results/bowtie2/bam"
-GTF_dir="/data/RNA-seq/reference/mouse"
-counts_dir="/data/RNA-seq/01/results/counts"
+# ========= global parameters =========
+SAMPLES=$1          # eg.：SRR12043508,SRR12043509,SRR18909870,SRR18909871
+CONFIG=$2           # RNA-seq_config.sh
 
-# use conda environment
-source /data/software/miniconda3/etc/profile.d/conda.sh
-conda activate RNA_env
+# ========= config =========
+source ${CONFIG}
+
+# ========= conda =========
+set +u
+source ${CONDA_BASE}/etc/profile.d/conda.sh
+conda activate ${CONDA_ENV}
+set -u
 
 # create folders
 mkdir -p "${counts_dir}"
 
-featureCounts -T 4 -p -a ${GTF_dir}/Mus_musculus.GRCm39.114.chr.gtf -g exon_id -f \
+echo "start running featureCounts..."
+
+featureCounts -T ${THREADS} -p -a ${GTF_dir}/gencode.v19.annotation.gtf \
 -o ${counts_dir}/gene_counts.txt \
 -Q 10 \
-${alignment_dir}/*.sort.bam
+${alignment_dir}/*.Aligned.sortedByCoord.out.bam
 
