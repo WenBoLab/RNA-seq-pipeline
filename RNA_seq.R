@@ -12,7 +12,7 @@ RNA_deg_results <- run_DESeq2(
   group_col = "condition", # Column in sample_info containing group/condition info
   control_level = "HK2",   # Reference/control group for comparison
   species = 'human',       # human or mouse
-  select = 'padj',         # Criterion for selecting DE genes: 'pvalue' or 'padj'
+  pvalue_type = 'padj',         # Criterion for selecting DE genes: 'pvalue' or 'padj'
   cut_off_pvalue = 0.05,   # Significance threshold (pvalue or padj) 
   cut_off_logFC = 1        # Threshold for log2 fold change
 )
@@ -30,7 +30,7 @@ ggsave(file=file.path(result.dir,"sample_PCA.pdf"), plot = result_PCA,
        width = 8, height = 6, units = "in")
 
 # Volcano plot of DEGs
-result_volcanoplot <- plot_volcanoplot(diff_data = deg, cut_off_pvalue = 0.05, cut_off_logFC = 1,num=3)
+result_volcanoplot <- plot_volcanoplot(diff_data = deg, cut_off_pvalue = 0.05, cut_off_logFC = 1,num=3, pvalue_type='padj')
 # save plot
 ggsave(file=file.path(result.dir,"volcanoplot.pdf"), plot = result_volcanoplot,
        width = 6, height = 6, units = "in")
@@ -46,7 +46,7 @@ ggsave(file=file.path(result.dir,"heatmap.pdf"), plot = result_heatmap,
        width = 4, height = 6, units = "in")
 
 # DEGs GO analysis
-GO_results <- GO_enrichment(deg$external_gene_name,species='human',cut_off_pvalue=0.05,showNum=10)
+GO_results <- GO_enrichment(deg$external_gene_name,species='human',cut_off_pvalue=0.05,showNum=10, pvalue_type='p.adjust')
 go.data <- GO_results$data
 go.data.plot <- GO_results$plot
 write.table(go.data,file=file.path(result.dir,  "GO results.txt"),sep="\t",quote=F,row.names = TRUE)
@@ -54,10 +54,11 @@ ggsave(file=file.path(result.dir,"GO_dotplot.pdf"), plot = go.data.plot,
        width = 8, height = 6, units = "in")
 
 # DEGs KEGG analysis
-KEGG_results <- KEGG_enrichment(deg$external_gene_name,species='human',cut_off_pvalue=0.05,showNum=10)
+KEGG_results <- KEGG_enrichment(deg$external_gene_name,species='human',cut_off_pvalue=0.05,showNum=10, pvalue_type='p.adjust')
 kegg.data <- KEGG_results$data
 kegg.data.plot <- KEGG_results$plot
 write.table(kegg.data,file=file.path(result.dir,  "KEGG results.txt"),sep="\t",quote=F,row.names = TRUE)
 ggsave(file=file.path(result.dir,"KEGG_dotplot.pdf"), plot = kegg.data.plot,
        width = 8, height = 6, units = "in")
+
 
