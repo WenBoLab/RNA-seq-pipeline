@@ -114,7 +114,7 @@ run_DESeq2 <- function(
     filter_low_counts = TRUE,
     min_counts = 0,
     min_samples = 0,
-    select = c('padj','pvalue'),
+    pvalue_type = c('padj','pvalue'),
     cut_off_pvalue = 0.05,
     cut_off_logFC = 1) {
   
@@ -154,7 +154,7 @@ run_DESeq2 <- function(
   dds <- DESeq(dds)
   res <- results(dds)
   
-  if(select == 'pvalue'){
+  if(pvalue_type == 'pvalue'){
     diff_data <- as.data.frame(res) %>%
       tibble::rownames_to_column("gene_id") %>%
       left_join(gene_anno, by = setNames(gene_id_type, "gene_id")) %>%
@@ -221,9 +221,9 @@ plot_volcanoplot <- function(diff_data,
                              cut_off_pvalue = 0.05,
                              cut_off_logFC = 1,
                              num = 5,
-                             select = c('padj','pvalue')){
+                             pvalue_type = c('padj','pvalue')){
   nd <- c("ggplot2","paletteer","tidyverse","dplyr")
-  select <- match.arg(select)
+  pvalue_type <- match.arg(pvalue_type)
   cat('distribution of genes: \n')
   print(table(diff_data$change))
   # add gene labels in plot
@@ -253,7 +253,7 @@ plot_volcanoplot <- function(diff_data,
   # 把 label 对应回原数据框
   diff_data <- diff_data %>%
     left_join(
-      to_label %>% select(external_gene_name, label),
+      to_label %>% dplyr::select(external_gene_name, label),
       by = "external_gene_name"
     ) %>%
     mutate(
@@ -261,13 +261,13 @@ plot_volcanoplot <- function(diff_data,
     )
   
   p <- ggplot(
-    diff_data, aes(x = log2FoldChange, y = -log10(.data[[select]]), colour=change)) +
+    diff_data, aes(x = log2FoldChange, y = -log10(.data[[pvalue_type]]), colour=change)) +
     geom_point(alpha=0.8, size=1) +
     scale_color_manual(values=c("#104F8D", "#d2dae2","#BD4F48"))+
     geom_vline(xintercept=c(-cut_off_logFC,cut_off_logFC),lty=4,col="black",lwd=0.8) +
     geom_hline(yintercept = -log10(cut_off_pvalue),lty=4,col="black",lwd=0.8) +
     labs(x="log2(Fold Change)",
-         y=paste0("-log10 (",select,")"))+
+         y=paste0("-log10 (",pvalue_type,")"))+
     theme_bw()+
     theme(plot.title = element_text(hjust = 0.5), 
           legend.position="right", 
@@ -364,7 +364,7 @@ plot_heatmap <- function(
 
 GO_enrichment <- function(gene_list,
                           species = c("human", "mouse"),
-                          select = c('padj','pvalue'),
+                          pvalue_type = c('p.adjust','pvalue'),
                           cut_off_pvalue = 0.05,
                           showNum = 10){
   
@@ -401,7 +401,7 @@ GO_enrichment <- function(gene_list,
   }
   
   go.data <- data.frame(go)
-  if(select == 'pvalue'){
+  if(pvalue_type == 'pvalue'){
     go.data <- go.data[which(go.data$pvalue < cut_off_pvalue),]
     display_p <- 'pvalue'
   }else{
@@ -433,7 +433,7 @@ GO_enrichment <- function(gene_list,
   go.data.top$GeneRatio_num <- gene_ratio_num
   
   p <- ggplot(go.data.top, aes(x = GeneRatio_num, y = reorder(Description, GeneRatio))) +
-    geom_point(aes(size = Count, color = display_p)) +
+    geom_point(aes(size = Count, color = .data[[pvalue_type]])) +
     coord_cartesian(clip = "off") +
     # 颜色：用 viridis::plasma，并把颜色方向反过来（p越小颜色越亮）
     scale_color_paletteer_c(
@@ -464,7 +464,7 @@ GO_enrichment <- function(gene_list,
 
 KEGG_enrichment <- function(gene_list,
                           species = c("human", "mouse"),
-                          select = 'padj',
+                          pvalue_type = c('p.adjust','pvalue'),
                           cut_off_pvalue = 0.05,
                           showNum = 10){
   
@@ -499,7 +499,7 @@ KEGG_enrichment <- function(gene_list,
   }
   
   kegg.data <- as.data.frame(kegg.data)
-  if(select == 'pvalue'){
+  if(pvalue_type == 'pvalue'){
     kegg.data <- kegg.data[which(kegg.data$pvalue < cut_off_pvalue),]
     display_p <- 'pvalue'
   }else{
@@ -512,7 +512,7 @@ KEGG_enrichment <- function(gene_list,
   
   #气泡图
   p <- ggplot(data = kegg.data, aes(y = order, x = Count)) +
-    geom_point(aes(size=Count,color=display_p)) + 
+    geom_point(aes(size=Count,color=.data[[pvalue_type]])) + 
     scale_color_paletteer_c(
       palette   = "viridis::plasma",
       direction = -1,              # 让小 p 在高亮端
@@ -531,3 +531,4 @@ KEGG_enrichment <- function(gene_list,
   return(results)
 
 }
+
