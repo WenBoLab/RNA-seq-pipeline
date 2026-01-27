@@ -288,12 +288,14 @@ plot_heatmap <- function(
     count_file,
     sample_info_file,
     gene_list,
+    species = c("human", "mouse"),
     filter_low_counts = TRUE,
     min_counts = 0,
     min_samples = 0
 ) {
   nd <- c("pheatmap")
   Plus.library(nd)
+  species <- match.arg(species)
   # read data
   counts <- read.table(file=file.path(data.dir,count_file), header = TRUE, row.names = 1)
   # filter data
@@ -351,7 +353,7 @@ plot_heatmap <- function(
     plot <- pheatmap(
       tpm_sub,
       main = "TPM",
-      scale = scale,
+      scale = 'row,
       cluster_rows = TRUE,
       cluster_cols = TRUE,
       show_rownames = FALSE
@@ -527,4 +529,5 @@ KEGG_enrichment <- function(gene_list,
           plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"))
   results <- list(data = kegg.data, plot=p)
   return(results)
+
 }
