@@ -2,7 +2,9 @@
 #' @title  1）差异分析
 #'   2）富集分析
 
-#' @author  shaolizhen
+#' @description
+#' load & install required packages
+#' @author shi jian
 Plus.library <- function(packages){
   ## 系统已经安装的包
   x <- installed.packages()
@@ -36,10 +38,6 @@ detect_gene_id_type <- function(gene_ids, prop_threshold = 0.9) {
   prop_ens_stable  <- mean(is_ens_stable)
   prop_symbol      <- mean(is_symbol_like)
   
-  # 调试用（可注释掉）
-  # message(sprintf("比例: ens.version=%.2f%%, ens.stable=%.2f%%, symbol/other=%.2f%%", 
-  #                 prop_ens_version*100, prop_ens_stable*100, prop_symbol*100))
-  
   if (prop_ens_version >= prop_threshold) {
     return("ensembl_gene_id_version")
   }
@@ -59,6 +57,7 @@ detect_gene_id_type <- function(gene_ids, prop_threshold = 0.9) {
 #' @return 基因信息
 convert_to_gene_symbol <- function(gene_ids,
                                    species = c("human", "mouse")) {
+  species <- match.arg(species)
   # import library
   if(species == "human"){
     nd <- c("biomaRt","org.Hs.eg.db")
@@ -73,13 +72,38 @@ convert_to_gene_symbol <- function(gene_ids,
   }
   id_type <- detect_gene_id_type(gene_ids)
   # gene2symbol
-  gene_info <- useDataset(bio.use, useMart("ensembl"))
-  gene2symbols <- getBM(attributes = c('external_gene_name','entrezgene_id','description','gene_biotype',id_type),
-                        filters = id_type, values = gene_ids, mart = gene_info)
+  mart <- useDataset(dataset = bio.use, useMart("ensembl"))
+  gene2symbols <- getBM(attributes = c(id_type,'external_gene_name','entrezgene_id','description','gene_biotype'),
+                        filters = id_type, values = gene_ids, mart = mart)
   
   return(gene2symbols)
 }
 
+#' @description 判断基因名在哪一列
+#' @param df 输入数据
+detect_gene_name_column <- function(df) {
+  
+  candidate_cols <- c("external_gene_name","gene_name","symbol","SYMBOL","Gene","gene")
+  
+  hit <- candidate_cols[candidate_cols %in% colnames(df)]
+  
+  if (length(hit) > 0) {
+    message("✔ Use gene column: ", hit[1])
+    return(hit[1])
+  }
+  
+  ## fallback: rownames
+  if (!is.null(rownames(df)) && all(rownames(df) != "")) {
+    message("✔ Use rownames as gene names")
+    return(NULL)  # NULL 表示用 rownames
+  }
+  
+  stop("No gene name column detected, and rownames are empty.")
+}
+
+#' @description 检查数据类型
+#' @param count_mat 表达矩阵 
+#' @return 数据类型
 check_is_raw_counts <- function(count_mat) {
   if (!is.matrix(count_mat) && !is.data.frame(count_mat)) {
     stop("Input count data must be a matrix or data.frame.")
@@ -100,20 +124,42 @@ check_is_raw_counts <- function(count_mat) {
   return(TRUE)
 }
 
+#' @description 数据过滤
+filter_fun <- function(counts,
+                       min_count = 0,
+                       min_samples = NULL,
+                       mode = c("rowSums", "rowMeans")) {
+  
+  mode <- match.arg(mode)
+  n_samples <- ncol(counts)
+  
+  if (is.null(min_samples)) {
+    min_samples <- ceiling(n_samples / 2)
+  }
+  
+  if (mode == "rowSums") {
+    keep <- rowSums(counts >= min_count) >= min_samples
+  } else {
+    keep <- rowMeans(counts) >= min_count
+  }
+  
+  return(keep)
+}
+
 #' @description 差异分析
-#' @param data.dir 定量数据存放地址
-#' @param count_file raw count文件名
-#' @param sample_info_file 样本信息
+#' @param counts 表达矩阵
+#' @param coldata 样本信息
+#' @param design 分组信息所在的表头名称
+#' @param contrast 哪辆组比较
+#' @param control_level 对照组
+#' @param pvalue_type P值类型
 run_DESeq2 <- function(
-    data.dir,
-    count_file,
-    sample_info_file,
-    group_col = "condition",
-    control_level,
-    species = c("human", "mouse"),
-    filter_low_counts = TRUE,
-    min_counts = 0,
-    min_samples = 0,
+    counts,
+    coldata,
+    design,
+    contrast = NULL,
+    control_level = NULL,
+    count.filter = 0,
     pvalue_type = c('padj','pvalue'),
     cut_off_pvalue = 0.05,
     cut_off_logFC = 1) {
@@ -121,102 +167,84 @@ run_DESeq2 <- function(
   # import library
   nd <- c("DESeq2","dplyr","readxl",'tidyr')
   Plus.library(nd)
-  # read data
-  counts <- read.table(file=file.path(data.dir,count_file), header = TRUE, row.names = 1)
-  # filter data
-  if(filter_low_counts == TRUE){
-    counts <- counts[rowMeans(counts[,6:ncol(counts)]) > min_counts, ]
+  
+  pvalue_type <- match.arg(pvalue_type)
+  
+  # ---------- 1. input check ----------
+  stopifnot(all(colnames(counts) %in% rownames(coldata)))
+  coldata <- coldata[colnames(counts), , drop = FALSE] # 将coldata的行按照counts的列的顺序重新排序
+  check_is_raw_counts(counts)
+  
+  # ---------- 2. relevel control ----------
+  if (!is.null(control_level)) {
+    var <- all.vars(design)[1]
+    coldata[[var]] <- relevel(factor(coldata[[var]]), ref = control_level)
   }
-  # sample information
-  sample_info <- read_excel(file.path(data.dir,sample_info_file))
-  sample_info <- as.data.frame(sample_info)
-  rownames(sample_info) <- sample_info$sample_name
   
-  ## rename sample
-  new_names <- paste0(sample_info$condition,"_",sample_info$replicate)
-  colnames(counts)[6:ncol(counts)] <- new_names
-  check_is_raw_counts(counts[,6:ncol(counts)])
-  
-  ## gene annotation
-  gene_id_type <- detect_gene_id_type(rownames(counts))
-  gene_anno <- convert_to_gene_symbol(rownames(counts), species)
-  
-  ## prepare metadata
-  sample_info[[group_col]] <- factor(sample_info[[group_col]])
-  sample_info[[group_col]] <- relevel(sample_info[[group_col]], ref = control_level)
-  ## DESeq2
+  # ---------- 3. DESeq2 ----------
   dds <- DESeqDataSetFromMatrix(
-    countData = counts[, 6:ncol(counts)],
-    colData = sample_info,
-    design = as.formula(paste0("~", group_col))
+    countData = counts,
+    colData = coldata,
+    design = design
   )
-
+  if (!is.null(count.filter)) {
+    keep <- rowMeans(DESeq2::counts(dds)) >= count.filter
+    dds <- dds[keep, ]
+  }
   dds <- DESeq(dds)
-  res <- results(dds)
-  
-  if(pvalue_type == 'pvalue'){
-    diff_data <- as.data.frame(res) %>%
-      tibble::rownames_to_column("gene_id") %>%
-      left_join(gene_anno, by = setNames(gene_id_type, "gene_id")) %>%
-      mutate(
-        change = case_when(
-          pvalue < cut_off_pvalue & log2FoldChange >= cut_off_logFC ~ "Up",
-          pvalue < cut_off_pvalue & log2FoldChange <= -cut_off_logFC ~ "Down",
-          TRUE ~ "Stable"
-        )
-      ) %>%
-      mutate(across(where(is.character), ~na_if(., ""))) %>%
-      mutate(across(where(is.character), ~na_if(., "."))) 
-    # remove NA
-    if (any(is.na(diff_data$pvalue))) {
-      cat("检测到 pvalue 中有 NA，正在移除...\n")
-      diff_data <- drop_na(diff_data, pvalue)
-    }
-  }else{
-    diff_data <- as.data.frame(res) %>%
-      tibble::rownames_to_column("gene_id") %>%
-      left_join(gene_anno, by = setNames(gene_id_type, "gene_id")) %>%
-      mutate(
-        change = case_when(
-          padj < cut_off_pvalue & log2FoldChange >= cut_off_logFC ~ "Up",
-          padj < cut_off_pvalue & log2FoldChange <= -cut_off_logFC ~ "Down",
-          TRUE ~ "Stable"
-        )
-      ) %>%
-      mutate(across(where(is.character), ~na_if(., ""))) %>%
-      mutate(across(where(is.character), ~na_if(., ".")))
-    # remove NA
-    if (any(is.na(diff_data$padj))) {
-      cat("检测到 padj 中有 NA，正在移除...\n")
-      diff_data <- drop_na(diff_data, padj)
-    }
+  res <- if (is.null(contrast)) {
+    results(dds)
+  } else {
+    results(dds, contrast = contrast)
   }
-  # remove NA in gene_name
-  if (any(is.na(diff_data$external_gene_name))) {
-    cat("检测到 gene_name 中有 NA，正在移除...\n")
-    diff_data <- drop_na(diff_data, external_gene_name)
-  }
-  # remove duplicated gene name
-  diff_data <- diff_data[!duplicated(diff_data$external_gene_name), ]
-  rownames(diff_data) <- diff_data$external_gene_name
   
-  return(list(dds = dds,DEG = diff_data))
+  # ---------- 4. DEG classification ----------
+  deg <- as.data.frame(res) |>
+    tibble::rownames_to_column("gene_id") |>
+    mutate(
+      change = case_when(
+        .data[[pvalue_type]] < cut_off_pvalue & log2FoldChange >= cut_off_logFC  ~ "Up",
+        .data[[pvalue_type]] < cut_off_pvalue & log2FoldChange <= -cut_off_logFC ~ "Down",
+        TRUE ~ "Stable"
+      )
+    ) |>
+    drop_na(.data[[pvalue_type]])
+  
+  return(list(dds = dds,result = res,DEG = deg))
 }
-plot_PCA <- function(dds,data.dir,sample_info_file){
+
+#' @description 样本PCA分析
+#' @param dds DESeq2对象
+#' @param intgroup 分组信息（colData 中的列名）
+#' @return 返回PCA数据和PCA图
+plot_PCA <- function(dds,
+                     intgroup = "condition"){
   nd <- c("ggplot2","ggrepel")
   Plus.library(nd)
-  sample_info <- read_excel(file.path(data.dir,sample_info_file))
-  sample_info <- as.data.frame(sample_info)
-  rownames(sample_info) <- sample_info$sample_name
-  if(length(sample_info$sample_id) < 30){
+  if (!intgroup %in% colnames(colData(dds))) {
+    stop("intgroup not found in colData(dds)")
+  }
+  
+  n_samples <- ncol(dds)
+  
+  if(n_samples < 30){
     scale.data <- rlog(dds, blind=TRUE)
   }else{
     scale.data <- vst(dds, blind=TRUE)
   }
-  p <- plotPCA(scale.data, intgroup="condition")
-  return(p)
+  pcaData <- plotPCA(scale.data, intgroup= intgroup,returnData=TRUE)
+  percentVar <- round(100 * attr(pcaData, "percentVar"))
+  pca <- ggplot(pcaData, aes(PC1, PC2 , color = .data[[intgroup]],shape = .data[[intgroup]])) +
+    geom_point(size=3) +
+    xlab(paste0("PC1: ",percentVar[1],"% variance")) +
+    ylab(paste0("PC2: ",percentVar[2],"% variance")) +
+    coord_fixed() +
+    ggtitle("Principal component plot")
+  return(list(pcaData = pcaData,plot = pca))
 }
 
+#' @description 差异基因火山图
+#' @param diff_data DESeq2结果
 plot_volcanoplot <- function(diff_data,
                              cut_off_pvalue = 0.05,
                              cut_off_logFC = 1,
@@ -224,13 +252,17 @@ plot_volcanoplot <- function(diff_data,
                              pvalue_type = c('padj','pvalue')){
   nd <- c("ggplot2","paletteer","tidyverse","dplyr")
   pvalue_type <- match.arg(pvalue_type)
-  cat('distribution of genes: \n')
-  print(table(diff_data$change))
+  ## detect gene name
+  gene_col <- detect_gene_name_column(diff_data)
+  if (is.null(gene_col)) {
+    diff_data$gene_label <- diff_data$gene_id
+  } else {
+    diff_data$gene_label <- diff_data$gene_id
+  }
   # add gene labels in plot
-  # ── 准备要标注的基因 ────────────────────────────────
   # 只考虑显著基因
   sig_data <- diff_data %>% 
-    filter(padj < cut_off_pvalue)   # 或用 .data[[select]] < cut_off_pvalue
+    filter(.data[[pvalue_type]] < cut_off_pvalue)
   
   # 上调（正 logFC）的前 num 个
   up <- sig_data %>%
@@ -246,23 +278,23 @@ plot_volcanoplot <- function(diff_data,
     slice_head(n = num) %>%
     mutate(direction = "Down")
   
-  # 合并要标注的基因（最多 2*num 个）
+  # genes to label
   to_label <- bind_rows(up, down) %>%
-    mutate(label = external_gene_name)
+    mutate(label = gene_label)
   
-  # 把 label 对应回原数据框
-  diff_data <- diff_data %>%
+  # merge label info (do NOT overwrite original data)
+  diff_data1 <- diff_data %>%
     left_join(
-      to_label %>% dplyr::select(external_gene_name, label),
-      by = "external_gene_name"
+      to_label %>% dplyr::select(gene_id, label),
+      by = "gene_id"
     ) %>%
     mutate(
       label = replace_na(label, "")
     )
   
   p <- ggplot(
-    diff_data, aes(x = log2FoldChange, y = -log10(.data[[pvalue_type]]), colour=change)) +
-    geom_point(alpha=0.8, size=1) +
+    diff_data1, aes(x = log2FoldChange, y = -log10(.data[[pvalue_type]]), colour=change)) +
+    geom_point(alpha=0.8, size=0.5) +
     scale_color_manual(values=c("#104F8D", "#d2dae2","#BD4F48"))+
     geom_vline(xintercept=c(-cut_off_logFC,cut_off_logFC),lty=4,col="black",lwd=0.8) +
     geom_hline(yintercept = -log10(cut_off_pvalue),lty=4,col="black",lwd=0.8) +
@@ -282,83 +314,52 @@ plot_volcanoplot <- function(diff_data,
   
   return(p)
 }
-
+#' @description 差异基因热图
+#' @param dds DESeq2对象，标准化数据时用到
+#' @param coldata 样本信息
+#' @param gene_list 基因列表
+#' @param show_gene_name 是否展示基因名
 plot_heatmap <- function(
-    data.dir,
-    count_file,
-    sample_info_file,
+    dds,
+    coldata,
     gene_list,
-    species = c("human", "mouse"),
-    filter_low_counts = TRUE,
-    min_counts = 0,
-    min_samples = 0
+    show_gene_name
 ) {
-  nd <- c("pheatmap")
+  nd <- c("DESeq2","pheatmap")
   Plus.library(nd)
-  species <- match.arg(species)
-  # read data
-  counts <- read.table(file=file.path(data.dir,count_file), header = TRUE, row.names = 1)
-  # filter data
-  if(filter_low_counts == TRUE){
-    counts <- counts[rowMeans(counts[,6:ncol(counts)]) > min_counts, ]
+  n_samples <- ncol(dds)
+  if(n_samples < 30){
+    scale.data <- rlog(dds, blind=TRUE)
+  }else{
+    scale.data <- vst(dds, blind=TRUE)
   }
-  # sample information
-  sample_info <- read_excel(file.path(data.dir,sample_info_file))
-  sample_info <- as.data.frame(sample_info)
-  rownames(sample_info) <- sample_info$sample_name
+  mat <- assay(scale.data)
   
-  ## rename sample
-  new_names <- paste0(sample_info$condition,"_",sample_info$replicate)
-  colnames(counts)[6:ncol(counts)] <- new_names
-  
-  ## gene annotation
-  gene_id_type <- detect_gene_id_type(rownames(counts))
-  gene_anno <- convert_to_gene_symbol(rownames(counts), species)
-  counts <- counts %>%
-    tibble::rownames_to_column("gene_id") %>%
-    left_join(gene_anno, by = setNames(gene_id_type, "gene_id")) %>%
-    mutate(across(where(is.character), ~na_if(., ""))) %>%
-    mutate(across(where(is.character), ~na_if(., ".")))
-  
-  if (any(is.na(counts$external_gene_name))) {
-    cat("检测到 gene_name 中有 NA，正在移除...\n")
-    counts <- drop_na(counts, external_gene_name)
+  hit_genes <- intersect(rownames(mat), gene_list)
+  if (length(hit_genes) == 0) {
+    stop("No genes in gene_list matched rownames of dds.")
   }
-  # remove duplicated gene name
-  counts <- counts[!duplicated(counts$external_gene_name), ]
-  rownames(counts) <- counts$external_gene_name
+  if (length(hit_genes) < length(gene_list)) {
+    message("⚠ Only ", length(hit_genes), "/", length(gene_list),
+            " genes matched and will be plotted.")
+  }
+  mat <- mat[hit_genes, , drop = FALSE]
   
-  if (is.null(counts$Length)) {
-    counts <- counts[,rownames(sample_info)]
-    counts <- counts[rownames(counts) %in% gene_list, ]
-    apply(counts,2, function(x) sum(is.na(x)))  # count NA
-    plot <- pheatmap(
-      counts,
-      main = "scale expression",
-      scale = 'row',
-      #annotation_col = sample_info$condition,
-      cluster_rows = TRUE,
-      cluster_cols = TRUE,
-      show_rownames = FALSE
+  anno_col <- NULL
+  if (!is.null(coldata)) {
+    stopifnot(all(colnames(mat) %in% rownames(coldata)))
+    anno_col <- coldata[colnames(mat), , drop = FALSE]
+  }
+  
+  plot <- pheatmap(
+    mat,
+    scale = 'row',
+    cluster_rows = TRUE,
+    cluster_cols = TRUE,
+    annotation_col = anno_col,
+    show_rownames = show_gene_name
     )
-  }
-  else{
-    gene_length_kb <- counts$Length / 1000
-    rpk <- sweep(counts[, rownames(sample_info)], 1, gene_length_kb, FUN = "/")
-    tpm <- sweep(rpk, 2, colSums(rpk), FUN = "/") * 1e6
-    tpm <- as.data.frame(tpm)
-    
-    tpm_sub <- tpm[rownames(tpm) %in% gene_list, ]
-    
-    plot <- pheatmap(
-      tpm_sub,
-      main = "TPM",
-      scale = 'row,
-      cluster_rows = TRUE,
-      cluster_cols = TRUE,
-      show_rownames = FALSE
-    )
-  }
+  
   return(plot)
 }
 
@@ -376,27 +377,25 @@ GO_enrichment <- function(gene_list,
   if(species == "human"){
     nd <- c("clusterProfiler","org.Hs.eg.db","ggplot2","paletteer")
     Plus.library(nd)
-    go <- enrichGO(gene = gene_anno$entrezgene_id,
+    go <- enrichGO(gene = gene_list,
                    OrgDb = org.Hs.eg.db,     
-                   keyType = "ENTREZID",     
+                   keyType = "SYMBOL",     
                    ont = "ALL",              
                    pAdjustMethod = "BH",     
                    pvalueCutoff = pvalueSET, 
-                   qvalueCutoff = qvalueSET, 
-                   readable = T             
+                   qvalueCutoff = qvalueSET             
     )
   }
   if(species == "mouse"){
     nd <- c("clusterProfiler","org.Mm.eg.db","ggplot2","paletteer")
     Plus.library(nd)
-    go <- enrichGO(gene = gene_anno$entrezgene_id,
+    go <- enrichGO(gene = gene_list,
                    OrgDb = org.Mm.eg.db,     
-                   keyType = "ENTREZID",     
+                   keyType = "SYMBOL",     
                    ont = "ALL",              
                    pAdjustMethod = "BH",     
                    pvalueCutoff = pvalueSET, 
-                   qvalueCutoff = qvalueSET, 
-                   readable = T             
+                   qvalueCutoff = qvalueSET            
     )
   }
   
@@ -510,15 +509,18 @@ KEGG_enrichment <- function(gene_list,
   rownames(kegg.data) <- 1:nrow(kegg.data)
   kegg.data$order <- factor(rev(as.integer(rownames(kegg.data))),labels = rev(kegg.data$Description))
   
+  kegg.data <- kegg.data[order(kegg.data$`pvalue`), ]
+  # 从排序后的数据框中选择前10行 
+  kegg.data.top <- head(kegg.data, n = showNum)
   #气泡图
-  p <- ggplot(data = kegg.data, aes(y = order, x = Count)) +
+  p <- ggplot(data = kegg.data.top, aes(y = order, x = Count)) +
     geom_point(aes(size=Count,color=.data[[pvalue_type]])) + 
     scale_color_paletteer_c(
       palette   = "viridis::plasma",
       direction = -1,              # 让小 p 在高亮端
       name      = display_p
     ) +
-    facet_grid(category ~., scales = "free_y",space = "free_y") +
+    #facet_grid(category ~., scales = "free_y",space = "free_y") +
     theme_bw() + # 黑白主题
     labs(x = "Gene Counts", y = "Pathways", title = "KEGG Enrichment") + # 设置x轴、y轴、标题标签
     theme(axis.title = element_text(size = 8), # 设置坐标轴标签字体大小
@@ -529,6 +531,4 @@ KEGG_enrichment <- function(gene_list,
           plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"))
   results <- list(data = kegg.data, plot=p)
   return(results)
-
 }
-
