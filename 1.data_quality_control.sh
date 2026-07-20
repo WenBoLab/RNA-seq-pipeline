@@ -22,7 +22,7 @@ echo "start running FastQC..."
 IFS=',' read -ra SAMPLE_ARRAY <<< "${SAMPLES}"
 
 for i in "${SAMPLE_ARRAY[@]}";do
-    fastqc -t ${THREADS} -o ${fastqc_dir}/ -f fastq ${data_dir}/${i}/*.fq.gz
+    fastqc -t ${THREADS} -o ${fastqc_dir}/ -f fastq ${data_dir}/${i}/*.{fastq,fq}.gz
 done
 
 # parameters
