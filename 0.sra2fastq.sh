@@ -19,12 +19,12 @@ IFS=',' read -ra SAMPLE_ARRAY <<< "${SAMPLES}"
 
 for i in "${SAMPLE_ARRAY[@]}"; do
 
-    if [[ ! -f "${data_dir}/${i}/${i}.sra" ]]; then
-        echo "Error: ${data_dir}/${i}/${i}.sra not found!"
+    if [[ ! -f "${sra_dir}/${i}/${i}.sra" ]]; then
+        echo "Error: ${sra_dir}/${i}/${i}.sra not found!"
         exit 1
     fi
 
-	mkdir -p "${data_dir}/fastq_data/${i}"
+	mkdir -p "${data_dir}/${i}"
 	
-	${sratoolkit_dir}/fastq-dump --gzip --split-3 "${data_dir}/${i}/${i}.sra" -O ${data_dir}/fastq_data/${i}/
+	${sratoolkit_dir}/fastq-dump --gzip --split-3 "${sra_dir}/${i}/${i}.sra" -O ${data_dir}/${i}/
 done
