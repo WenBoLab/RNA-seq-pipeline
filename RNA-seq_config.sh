@@ -1,21 +1,32 @@
 # ========= base directory =========
-data_dir="/data/RNA-seq/01/fastq_data"
-fastqc_dir="/data/RNA-seq/01/results/fastqc"
-multiqc_dir="/data/RNA-seq/01/results/multiqc"
+base_dir="/data/NAFLD/results/mouse/GSE176681"
+sra_dir="/data/NAFLD/data/mouse/GSE176681/sra"
+data_dir="/data/NAFLD/data/mouse/GSE176681/fastq_data"
 
-clean_dir="/data/RNA-seq/01/results/fastp"
-clean_fastqc_dir="/data/RNA-seq/01/results/fastp/fastqc"
-clean_multiqc_dir="/data/RNA-seq/01/results/fastp/multiqc"
+# ========= other directory =========
+fastqc_dir="${base_dir}/fastqc"
+multiqc_dir="${base_dir}/multiqc"
 
-reference_dir="/data/RNA-seq/reference/human/hg19"
-GTF_dir="/data/RNA-seq/reference/human/hg19"
-alignment_dir="/data/RNA-seq/01/results/map"
+clean_dir="${base_dir}/fastp"
+clean_fastqc_dir="${base_dir}/fastp/fastqc"
+clean_multiqc_dir="${base_dir}/fastp/multiqc"
 
-counts_dir="/data/RNA-seq/01/results/counts"
+mouse_genome_dir="/data/reference/mouse"
+mouse_gtf_dir="/data/reference/mouse"
+
+human_genome_dir="/data/reference/human"
+human_gtf_dir="/data/reference/human"
+
+alignment_dir="${base_dir}/map"
+
+counts_dir="${base_dir}/counts"
 
 sratoolkit_dir="/data/software/sratoolkit.3.2.1-ubuntu64/bin"
 
 # ========= parameters =========
+LibraryLayout="P"  # P: paired-end; S: single-end
+SPECIES="mouse"  # mouse or human
+
 THREADS=8
 INSERT_MIN=10
 INSERT_MAX=700
