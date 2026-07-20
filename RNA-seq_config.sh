@@ -13,6 +13,8 @@ alignment_dir="/data/RNA-seq/01/results/map"
 
 counts_dir="/data/RNA-seq/01/results/counts"
 
+sratoolkit_dir="/data/software/sratoolkit.3.2.1-ubuntu64/bin"
+
 # ========= parameters =========
 THREADS=8
 INSERT_MIN=10
