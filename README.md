@@ -22,7 +22,7 @@ conda install bioconda::fastqc
 ### 1. Raw data quality control
 This step evaluates the quality of raw RNA-seq FASTQ files before any downstream processing.
 
-Required software：fastqc and multiqc. you can install them using Conda.
+Required software: fastqc and multiqc. You can install them using Conda.
 
 ```bash
 fastqc -t 4 -o data/raw_fastqc/ -f fastq data/raw_data/*.fastq.gz
