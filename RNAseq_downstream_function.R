@@ -52,6 +52,51 @@ detect_gene_id_type <- function(gene_ids, prop_threshold = 0.9) {
   return("mixed_or_unrecognized")
 }
 
+exchane_gene_name <- function(data,
+                              species = c("human", "mouse"),
+                              gene_info = NULL){
+  if (!is.null(gene_info)) {
+    
+    colnames(gene_info) <- c("ensembl_gene_id","external_gene_name","gene_biotype")
+    # 只保留输入的 gene_ids 对应的行
+    gene_info <- gene_info[gene_info$ensembl_gene_id %in% rownames(data), , drop = FALSE]
+    
+    rownames(gene_info) <- gene_info$ensembl_gene_id
+    exp <- merge(gene_info,data, by='row.names')
+    is_duplicate <- duplicated(exp$external_gene_name)
+    exp <- exp[!is_duplicate, ]
+    rownames(exp) <- exp$external_gene_name
+    exp <- exp[,-c(1:4)]
+    return(exp)
+  }
+  species <- match.arg(species)
+  # import library
+  if(species == "human"){
+    nd <- c("biomaRt","org.Hs.eg.db")
+    Plus.library(nd)
+    bio.use = "hsapiens_gene_ensembl"
+  }
+  
+  if(species == "mouse"){
+    nd <- c("biomaRt","org.Mm.eg.db")
+    Plus.library(nd)
+    bio.use = "mmusculus_gene_ensembl"
+  }
+  id_type <- detect_gene_id_type(rownames(data))
+  # gene2symbol
+  mart <- useDataset(dataset = bio.use, useMart("ensembl"))
+  gene2symbols <- getBM(attributes = c(id_type,'external_gene_name','gene_biotype'),
+                        filters = id_type, values = rownames(data), mart = mart)
+  rownames(gene2symbols) <- gene2symbols$ensembl_gene_id
+  exp = merge(gene2symbols, data, by='row.names')
+  exp$external_gene_name = make.unique(as.character(exp$external_gene_name), sep = ".")
+  #is_duplicate <- duplicated(exp$external_gene_name)
+  #exp <- exp[!is_duplicate, ]
+  #rownames(exp) <- exp$external_gene_name
+  exp <- exp[,-c(1:4)]
+  return(exp)
+}
+
 #' @description 基因 ID 转化
 #' @param gene_ids 基因编码 ID 
 #' @return 基因信息
