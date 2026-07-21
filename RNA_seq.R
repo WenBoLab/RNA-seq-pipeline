@@ -21,7 +21,18 @@ new_names <- sample_info$sample_name
 colnames(counts)[6:ncol(counts)] <- new_names
 
 # Please note that the order of samples in the gene_counts.txt file must match the order in the sample_info.xlsx file. You can manually adjust the sample information to ensure consistency.
-exp <- counts[,6:9]
+exp <- counts[,6:ncol(counts)]
+
+# filter
+exp <- filter_counts(data = exp,min_count = 6)
+
+# change gene_name
+gene_name <- read.table(file.path(data.dir, gene_info),skip = 1)
+colnames(gene_name) = c('ensembl_id','gene_id','gene_type')
+exp = merge(gene_name,exp,by.x='ensembl_id',by.y='row.names')
+exp$gene_id = make.unique(as.character(exp$gene_id), sep = ".")
+rownames(exp) = exp$gene_id
+exp = exp[,-c(1:3)]
 
 RNA_deg_results <- run_DESeq2(
   counts = exp,
@@ -55,7 +66,7 @@ ggsave(file=file.path(result.dir,"volcanoplot.pdf"), plot = result_volcanoplot,
        width = 6, height = 6, units = "in")
 
 # DEGs heatmap
-result_heatmap <- plot_heatmap(dds = dds,
+result_heatmap <- plot_heatmap(data = dds,
                                coldata = sample_info,
                                gene_list = deg$gene_id,
                                show_gene_name = FALSE)
